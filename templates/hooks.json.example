@@ -1,0 +1,16 @@
+{
+  "hermes-memory-injector": {
+    "PreInvocation": [
+      {
+        "command": "python3 {AGENTS_ROOT}/hermes_engine/hooks/pre_invocation.py"
+      }
+    ]
+  },
+  "hermes-session-stop": {
+    "Stop": [
+      {
+        "command": "python3 {AGENTS_ROOT}/hermes_engine/hooks/stop_hook.py"
+      }
+    ]
+  }
+}

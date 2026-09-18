@@ -1,0 +1,10 @@
+# Workspace Environment & Operating Rules
+- Platform: Cross-platform POSIX (Linux / macOS)
+- Stack: Python >= 3.10, FastMCP, SQLite FTS5, Pytest
+- Standard Directories: ~/.agents/ (skills, state, memories)
+§
+- Always verify changes with `pytest tests/ -v` before committing or finalizing code changes.
+§
+- FastMCP tool signatures must remain backward-compatible and support standard error handling schemas.
+§
+- Agent self-evolution must never overwrite user-owned or pinned procedural skills.
