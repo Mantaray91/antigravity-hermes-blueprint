@@ -115,7 +115,7 @@ The `Stop` hook runs under a strict monotonic deadline (`time.monotonic() + 1.5s
 ### Automated One-Command Installation
 Run the self-contained portable installer on your machine:
 ```bash
-git clone https://github.com/your-org/antigravity-hermes-blueprint.git
+git clone https://github.com/Mantaray91/antigravity-hermes-blueprint.git
 cd antigravity-hermes-blueprint
 bash install.sh
 ```
