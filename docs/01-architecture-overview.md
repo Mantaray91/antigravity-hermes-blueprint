@@ -15,44 +15,72 @@ Modern autonomous AI coding agents face three critical architectural pitfalls:
 
 ```mermaid
 flowchart TD
-    subgraph TIER1["Tier 1: Short-Term Working Context Snapshot"]
-        T1_HOOK["PreInvocation Hook\n(pre_invocation.py)"]
-        T1_COND{"invocationNum == 0?"}
-        T1_SNAP["Ephemeral Memory Injection\n(KV Cache Frozen per Turn)"]
-        T1_SKIP["No Injection\n(Preserve Tokens)"]
+    %% Styling
+    classDef hook fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+    classDef store fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
+    classDef runtime fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#1b5e20;
+    classDef guard fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
+
+    %% 1. Interactive Runtime
+    subgraph RUNTIME["1. INTERACTIVE RUNTIME (Prefix-Cache Friendly)"]
+        direction TB
+        USER_REQ["User Request"] --> PRE_HOOK["PreInvocation Hook\n(pre_invocation.py)"]:::hook
         
-        T1_HOOK --> T1_COND
-        T1_COND -- Yes --> T1_SNAP
-        T1_COND -- No --> T1_SKIP
+        PRE_HOOK -->|"Step 0 (invocationNum == 0)"| INJECT["Inject Context Snapshot\n(Frozen for entire turn)"]:::runtime
+        PRE_HOOK -->|"Step > 0 (Tool Turn)"| SKIP["Skip Injection\n(Zero Token Overhead)"]:::runtime
+        
+        INJECT --> AGENT["AI Coding Agent\n(Active Reasoning Loop)"]:::runtime
+        SKIP --> AGENT
+        
+        AGENT <-->|"FastMCP Protocol\n(memory, session_search, skill_manage)"| MCP["Hermes MCP Server\n(server.py)"]:::guard
     end
 
-    subgraph TIER2["Tier 2: Mid-Term Curated Dual Memory Store"]
-        T2_USER["USER.md\n(Profile & Preferences\nBudget: 1,375 chars)"]
-        T2_MEM["MEMORY.md\n(Workspace Rules & Tools\nBudget: 2,200 chars)"]
-        T2_ZONE0["Anchor Zone (Index 0)\nImmutable Core Identity"]
-        T2_ZONE1["Dynamic Zone (Index >= 1)\nFIFO Adaptive Eviction"]
+    %% 2. Curated Mid-Term Memory
+    subgraph TIER2["2. TIER 2: CURATED DUAL MEMORY (Mid-Term)"]
+        direction TB
+        MEM_STORE["MemoryStore (memory.py)\nAdvisory fcntl Locks + Atomic Replacement"]:::store
         
-        T2_USER --- T2_ZONE0
-        T2_USER --- T2_ZONE1
-        T2_MEM --- T2_ZONE0
-        T2_MEM --- T2_ZONE1
+        subgraph DUAL_STORES["Dual Markdown Stores (Delimiter: \\n§\\n)"]
+            USER_FILE["USER.md (max 1,375 chars)\nUser Profile & Preferences"]:::store
+            MEM_FILE["MEMORY.md (max 2,200 chars)\nWorkspace Rules & Tools"]:::store
+        end
+
+        subgraph TWO_ZONE["Two-Zone Protection Model"]
+            ZONE_0["Anchor Zone (Index 0)\n- Immutable Core Identity\n- Protected against batch/remove"]:::guard
+            ZONE_1["Dynamic Zone (Index >= 1)\n- FIFO Overflow Eviction\n- Transparent Eviction Telemetry"]:::guard
+        end
+
+        MEM_STORE --> DUAL_STORES
+        DUAL_STORES -.-> TWO_ZONE
     end
 
-    subgraph TIER3["Tier 3: Long-Term Episodic Recall & Autonomous Evolution"]
-        T3_DB[("SQLite FTS5 DB\n(state.db)\nBM25 Search + WAL")]
-        T3_HOOK["Stop Hook (stop_hook.py)\nDeadline: time.monotonic() + 1.5s"]
-        T3_REFLECT["SessionReflector\n(Bilingual Dedup + Learnings)"]
-        T3_SKILLS["SkillManager (agentskills.io)\nProvenance Guard (Origin)"]
+    %% 3. Episodic Recall & Autonomous Reflection
+    subgraph TIER3["3. TIER 3: EPISODIC RECALL & AUTONOMOUS REFLECTION"]
+        direction TB
+        STOP_HOOK["Stop Hook (stop_hook.py)\nCooperative Monotonic Deadline <= 1.5s"]:::hook
         
-        T3_HOOK --> T3_DB
-        T3_HOOK --> T3_REFLECT
-        T3_REFLECT --> T3_SKILLS
-        T3_REFLECT -.->|Distill Preference| T2_USER
+        subgraph EPISODIC["Episodic Storage & Search"]
+            FTS5[("SQLite FTS5 (state.db)\n- BM25 Relevance Search\n- Sanitized System Metadata")]:::store
+        end
+
+        subgraph EVOLUTION["Out-of-Band Self-Evolution"]
+            REFLECTOR["SessionReflector (reflector.py)\n- Exact + Jaccard >= 0.85 Dedup\n- Bilingual Negation Guard"]:::guard
+            SKILL_MGR["SkillManager (skills.py)\n- Provenance: 'background_review'\n- User & Pinned Skills Protected"]:::guard
+            SKILLS_DIR["Procedural Skills\n(~/.agents/skills/)"]:::store
+        end
+
+        STOP_HOOK -->|"1. Ingest Sanitized Transcript"| FTS5
+        STOP_HOOK -->|"2. Trigger Reflection"| REFLECTOR
+        REFLECTOR -->|"Distill Procedural Knowledge"| SKILL_MGR
+        SKILL_MGR --> SKILLS_DIR
+        REFLECTOR -.->|"Distill Discovered Preferences"| USER_FILE
     end
 
-    T2_USER -->|Render at Session Start| T1_SNAP
-    T2_MEM -->|Render at Session Start| T1_SNAP
-    T3_DB -.->|Progressive Retrieval| T1_SNAP
+    %% Key Inter-Tier Flows
+    MEM_STORE ==>|"Load Snapshot at Turn Start"| INJECT
+    MCP <-->|"Direct Curated Operations"| MEM_STORE
+    MCP <-->|"On-Demand Lexical Search"| FTS5
+    AGENT -.->|"Session Exit"| STOP_HOOK
 ```
 
 ### Tier 1: Working Context Snapshot (Short-Term)
