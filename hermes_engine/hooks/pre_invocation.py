@@ -12,10 +12,18 @@ if repo_root not in sys.path:
 
 try:
     from hermes_engine.memory import MemoryStore
-    from hermes_engine.config import resolve_agents_root
+    from hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 except ImportError:
     from mcp.hermes_engine.memory import MemoryStore
-    from mcp.hermes_engine.config import resolve_agents_root
+    from mcp.hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 
 
 def run_pre_invocation_hook(
@@ -37,9 +45,8 @@ def run_pre_invocation_hook(
         if inv_num > 0:
             return {"injectSteps": []}
 
-        agents_root = resolve_agents_root()
-        u_path = Path(user_path) if user_path is not None else Path.home() / ".gemini" / "memories" / "USER.md"
-        m_path = Path(memory_path) if memory_path is not None else agents_root / "memories" / "MEMORY.md"
+        u_path = Path(user_path) if user_path is not None else resolve_user_memory_path()
+        m_path = Path(memory_path) if memory_path is not None else resolve_workspace_memory_path()
 
         try:
             store = MemoryStore(u_path, m_path)
@@ -59,10 +66,9 @@ def run_pre_invocation_hook(
         return {"injectSteps": []}
 
 def main():
-    agents_root = resolve_agents_root()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--user-path", default=str(Path.home() / ".gemini" / "memories" / "USER.md"))
-    parser.add_argument("--memory-path", default=str(agents_root / "memories" / "MEMORY.md"))
+    parser.add_argument("--user-path", default=str(resolve_user_memory_path()))
+    parser.add_argument("--memory-path", default=str(resolve_workspace_memory_path()))
     args, _ = parser.parse_known_args()
 
     # Read stdin to inspect invocationNum

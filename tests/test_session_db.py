@@ -398,3 +398,28 @@ def test_search_defends_limit_bounds_and_invalid_types(session_db):
     # Excessively large limit capped to 100
     res_large = session_db.search("commonword", limit=500)
     assert len(res_large) <= 100
+
+
+def test_ingest_transcript_keyword_arguments(session_db):
+    steps = [{"step_index": 0, "type": "USER_INPUT", "content": "Keyword argument ingestion test."}]
+    # Test explicit keyword arguments: session_id and steps
+    inserted = session_db.ingest_transcript(session_id="kw-sess-1", steps=steps, workspace="/test/workspace")
+    assert inserted == 1
+
+    hits = session_db.search("Keyword argument ingestion")
+    assert len(hits) == 1
+    assert hits[0]["session_id"] == "kw-sess-1"
+
+
+def test_ingest_transcript_flexible_signatures(session_db, tmp_path):
+    # Test positional pattern: ingest_transcript(session_id, steps)
+    steps = [{"step_index": 0, "type": "USER_INPUT", "content": "Positional steps test"}]
+    ins1 = session_db.ingest_transcript("pos-sess-1", steps)
+    assert ins1 == 1
+
+    # Test positional pattern: ingest_transcript(file_path, session_id)
+    tfile = tmp_path / "test_flex.jsonl"
+    tfile.write_text(json.dumps({"type": "USER_INPUT", "content": "Path positional test"}), encoding="utf-8")
+    ins2 = session_db.ingest_transcript(tfile, "path-sess-1")
+    assert ins2 == 1
+

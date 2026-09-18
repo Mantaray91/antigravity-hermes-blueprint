@@ -3,7 +3,7 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timezone
 from contextlib import contextmanager
 
@@ -118,20 +118,43 @@ class SessionDB:
 
     def ingest_transcript(
         self,
-        transcript_path: Any,
-        session_id: Any = "",
+        transcript_or_id: Any = None,
+        session_id_or_steps: Any = None,
         workspace: str = "",
-        deadline: Optional[float] = None
+        deadline: Optional[float] = None,
+        *,
+        session_id: Optional[str] = None,
+        steps: Optional[List[Dict[str, Any]]] = None,
+        transcript_path: Optional[Union[str, Path]] = None,
     ) -> int:
-        if isinstance(session_id, list):
-            actual_session_id = str(transcript_path)
-            steps = session_id
-        else:
-            path = Path(transcript_path)
-            if not path.exists():
-                return 0
-            actual_session_id = str(session_id)
-            steps = load_canonical_transcript_steps(path)
+        actual_session_id = session_id or ""
+        resolved_steps: List[Dict[str, Any]] = steps if steps is not None else []
+
+        if not resolved_steps:
+            if isinstance(session_id_or_steps, list):
+                # Pattern: ingest_transcript(session_id, steps, ...)
+                if not actual_session_id and transcript_or_id is not None:
+                    actual_session_id = str(transcript_or_id)
+                resolved_steps = session_id_or_steps
+            elif isinstance(transcript_or_id, list):
+                # Pattern: ingest_transcript(steps, session_id, ...)
+                resolved_steps = transcript_or_id
+                if not actual_session_id and session_id_or_steps is not None:
+                    actual_session_id = str(session_id_or_steps)
+            else:
+                # Pattern: ingest_transcript(transcript_path, session_id, ...)
+                path_candidate = transcript_path or transcript_or_id
+                if path_candidate:
+                    path = Path(path_candidate)
+                    if path.exists():
+                        resolved_steps = load_canonical_transcript_steps(path)
+                    else:
+                        return 0
+                if not actual_session_id and session_id_or_steps is not None:
+                    actual_session_id = str(session_id_or_steps)
+
+        if not actual_session_id:
+            actual_session_id = "unknown"
 
         self._init_db()
         inserted = 0
@@ -144,7 +167,7 @@ class SessionDB:
                 (actual_session_id, workspace, now)
             )
             EXCLUDED_STEP_TYPES = {"EPHEMERAL_MESSAGE", "CHECKPOINT", "ERROR_MESSAGE"}
-            for idx, step in enumerate(steps):
+            for idx, step in enumerate(resolved_steps):
                 if deadline and time.monotonic() > deadline:
                     break
                 step_type = step.get("type", "")

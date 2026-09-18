@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-engine"
-version = "1.0.0"
+version = "1.0.1"
 description = "Autonomous Self-Evolution & 3-Tier Memory Architecture for AI Coding Agents"
 readme = "README.md"
 authors = [{ name = "Antigravity & Hermes Community" }]

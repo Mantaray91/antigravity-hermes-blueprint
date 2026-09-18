@@ -16,7 +16,7 @@ Hermes Engine was subjected to a rigorous 48-hour soak test under active product
 
 ---
 
-## 2. Test Suite Architecture (122 / 122 Passing)
+## 2. Test Suite Architecture (126 / 126 Passing)
 
 The test suite validates every layer of the architecture, from low-level POSIX file locks to high-level multi-step agent self-evolution lifecycles:
 
@@ -24,19 +24,19 @@ The test suite validates every layer of the architecture, from low-level POSIX f
 $ pytest tests/ -v
 ============================= test session starts ==============================
 platform linux -- Python 3.10+ / 3.14, pytest-9.1.1, pluggy-1.6.0
-collected 122 items
+collected 126 items
 
-tests/test_config.py ........                                            [  2%]
-tests/test_curator.py .............                                      [ 13%]
-tests/test_e2e_evolution.py .                                            [ 14%]
+tests/test_config.py .....                                               [  3%]
+tests/test_curator.py .............                                      [ 14%]
+tests/test_e2e_evolution.py .                                            [ 15%]
 tests/test_hooks.py .................                                    [ 28%]
 tests/test_memory.py ................                                    [ 41%]
-tests/test_reflector.py .....................                            [ 58%]
-tests/test_server.py .............                                       [ 69%]
-tests/test_session_db.py ..................                              [ 84%]
+tests/test_reflector.py .....................                            [ 57%]
+tests/test_server.py .............                                       [ 68%]
+tests/test_session_db.py ....................                            [ 84%]
 tests/test_skills.py ....................                                [100%]
 
-============================= 122 passed in 2.06s ==============================
+============================= 126 passed in 1.85s ==============================
 ```
 
 ### Test Suite Breakdown

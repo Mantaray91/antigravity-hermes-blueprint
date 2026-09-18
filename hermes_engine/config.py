@@ -28,3 +28,21 @@ def resolve_agents_root() -> Path:
         return home_agents
 
     return cwd
+
+
+def resolve_user_memory_path() -> Path:
+    """
+    Resolve path to USER.md.
+    Honors GEMINI_MEMORIES_DIR environment variable if set, defaulting to ~/.gemini/memories/USER.md.
+    """
+    env_mem = os.environ.get("GEMINI_MEMORIES_DIR")
+    base = Path(env_mem) if env_mem else Path.home() / ".gemini" / "memories"
+    return base / "USER.md"
+
+
+def resolve_workspace_memory_path() -> Path:
+    """
+    Resolve path to MEMORY.md inside agents root.
+    """
+    return resolve_agents_root() / "memories" / "MEMORY.md"
+

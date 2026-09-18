@@ -65,7 +65,7 @@ bash install.sh
 ```
 
 ### Step 2: Verify Test Suite
-Ensure all 122 unit tests pass without error:
+Ensure all 126 unit tests pass without error:
 ```bash
 pytest tests/ -v
 ```

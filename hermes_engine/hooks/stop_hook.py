@@ -16,13 +16,21 @@ try:
     from hermes_engine.memory import MemoryStore
     from hermes_engine.skills import SkillManager
     from hermes_engine.reflector import SessionReflector
-    from hermes_engine.config import resolve_agents_root
+    from hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 except ImportError:
     from mcp.hermes_engine.session_db import SessionDB, load_canonical_transcript_steps
     from mcp.hermes_engine.memory import MemoryStore
     from mcp.hermes_engine.skills import SkillManager
     from mcp.hermes_engine.reflector import SessionReflector
-    from mcp.hermes_engine.config import resolve_agents_root
+    from mcp.hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 
 
 def run_stop_hook(
@@ -38,8 +46,8 @@ def run_stop_hook(
 ) -> Dict[str, Any]:
     agents_root = resolve_agents_root()
     resolved_db = Path(db_path) if db_path is not None else agents_root / "state" / "state.db"
-    resolved_user = Path(user_path) if user_path is not None else Path.home() / ".gemini" / "memories" / "USER.md"
-    resolved_mem = Path(memory_path) if memory_path is not None else agents_root / "memories" / "MEMORY.md"
+    resolved_user = Path(user_path) if user_path is not None else resolve_user_memory_path()
+    resolved_mem = Path(memory_path) if memory_path is not None else resolve_workspace_memory_path()
     resolved_skills = Path(skills_dir) if skills_dir is not None else agents_root / "skills"
     resolved_usage = Path(usage_path) if usage_path is not None else resolved_skills / ".usage.json"
 
@@ -55,7 +63,7 @@ def run_stop_hook(
         # Ingest transcript into SQLite FTS5 database
         try:
             db = SessionDB(resolved_db)
-            db.ingest_transcript(conv_id, steps, workspace=workspace, deadline=deadline)
+            db.ingest_transcript(session_id=conv_id, steps=steps, workspace=workspace, deadline=deadline)
         except Exception:
             pass
 
@@ -74,8 +82,8 @@ def main():
     agents_root = resolve_agents_root()
     parser = argparse.ArgumentParser()
     parser.add_argument("--db-path", default=str(agents_root / "state" / "state.db"))
-    parser.add_argument("--user-path", default=str(Path.home() / ".gemini" / "memories" / "USER.md"))
-    parser.add_argument("--memory-path", default=str(agents_root / "memories" / "MEMORY.md"))
+    parser.add_argument("--user-path", default=str(resolve_user_memory_path()))
+    parser.add_argument("--memory-path", default=str(resolve_workspace_memory_path()))
     parser.add_argument("--skills-dir", default=str(agents_root / "skills"))
     parser.add_argument("--usage-path", default=None)
     parser.add_argument("--max-time-seconds", type=float, default=1.5)

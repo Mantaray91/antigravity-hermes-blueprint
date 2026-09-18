@@ -1,8 +1,12 @@
+import os
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-import tempfile
-import os
-import fcntl
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 ENTRY_DELIMITER = "\n§\n"
 
@@ -21,6 +25,20 @@ class MemoryStore:
         self.user_entries: List[str] = []
         self.memory_entries: List[str] = []
         self.load()
+
+    @staticmethod
+    def _lock_file(lf, exclusive: bool = True) -> None:
+        if fcntl is not None:
+            mode = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+            fcntl.flock(lf.fileno(), mode)
+
+    @staticmethod
+    def _unlock_file(lf) -> None:
+        if fcntl is not None:
+            try:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
 
     @property
     def user_file(self) -> Path:
@@ -60,11 +78,11 @@ class MemoryStore:
                 lock_file = path.parent / f".{path.name}.lock"
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
                 with open(lock_file, "a+", encoding="utf-8") as lf:
-                    fcntl.flock(lf.fileno(), fcntl.LOCK_SH)
+                    self._lock_file(lf, exclusive=False)
                     try:
                         self._load_target(tgt)
                     finally:
-                        fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+                        self._unlock_file(lf)
             else:
                 _, entries_list, _ = self._get_target_state(tgt)
                 entries_list.clear()
@@ -73,7 +91,7 @@ class MemoryStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         lock_file = path.parent / f".{path.name}.lock"
         with open(lock_file, "a+", encoding="utf-8") as lf:
-            fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+            self._lock_file(lf, exclusive=True)
             try:
                 temp_file = path.with_suffix(f".tmp.{os.getpid()}")
                 try:
@@ -87,7 +105,7 @@ class MemoryStore:
                             pass
                     raise
             finally:
-                fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+                self._unlock_file(lf)
 
     def _sync(self, target: str) -> None:
         path, entries, _ = self._get_target_state(target)
@@ -99,7 +117,7 @@ class MemoryStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         lock_file = path.parent / f".{path.name}.lock"
         with open(lock_file, "a+", encoding="utf-8") as lf:
-            fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+            self._lock_file(lf, exclusive=True)
             try:
                 # 1. Reload fresh state from disk under exclusive lock
                 self._load_target(target)
@@ -123,7 +141,7 @@ class MemoryStore:
                         raise
                 return res
             finally:
-                fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+                self._unlock_file(lf)
 
     def add_entry(self, target: str, content: str = None) -> bool:
         if content is None:
@@ -232,7 +250,7 @@ class MemoryStore:
                 p.parent.mkdir(parents=True, exist_ok=True)
                 lf_path = p.parent / f".{p.name}.lock"
                 lf = open(lf_path, "a+", encoding="utf-8")
-                fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+                self._lock_file(lf, exclusive=True)
                 file_handles.append(lf)
                 self._load_target(tgt)
 
@@ -290,21 +308,26 @@ class MemoryStore:
                     else:
                         raise ValueError(f"Unknown batch action '{act}'")
 
-                # Atomic write loop across modified targets
-                for tgt in targets:
-                    p, entries, _ = self._get_target_state(tgt)
-                    raw_text = ENTRY_DELIMITER.join(entries) if entries else ""
-                    temp_file = p.with_suffix(f".tmp.{os.getpid()}")
-                    try:
+                # Two-phase atomic write across modified targets
+                prepared_swaps = []
+                try:
+                    for tgt in targets:
+                        p, entries, _ = self._get_target_state(tgt)
+                        raw_text = ENTRY_DELIMITER.join(entries) if entries else ""
+                        temp_file = p.with_suffix(f".tmp.{os.getpid()}_{tgt}")
                         temp_file.write_text(raw_text, encoding="utf-8")
+                        prepared_swaps.append((temp_file, p))
+
+                    for temp_file, p in prepared_swaps:
                         temp_file.replace(p)
-                    except Exception:
+                except Exception:
+                    for temp_file, _ in prepared_swaps:
                         if temp_file.exists():
                             try:
                                 temp_file.unlink()
                             except OSError:
                                 pass
-                        raise
+                    raise
 
                 result: Dict[str, Any] = {"success": True, "applied": len(operations)}
                 if evicted_entries:
@@ -320,7 +343,7 @@ class MemoryStore:
         finally:
             for lf in reversed(file_handles):
                 try:
-                    fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+                    self._unlock_file(lf)
                     lf.close()
                 except Exception:
                     pass

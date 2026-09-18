@@ -26,3 +26,24 @@ def test_resolve_agents_root_fallback(tmp_path, monkeypatch):
     # When no skills dir exists in cwd or home, fallback returns cwd
     resolved = resolve_agents_root()
     assert isinstance(resolved, Path)
+
+
+def test_resolve_memory_paths(tmp_path, monkeypatch):
+    custom_root = tmp_path / "agents"
+    custom_root.mkdir()
+    monkeypatch.setenv("AGENTS_ROOT", str(custom_root))
+    monkeypatch.delenv("GEMINI_MEMORIES_DIR", raising=False)
+
+    from hermes_engine.config import resolve_user_memory_path, resolve_workspace_memory_path
+    assert resolve_workspace_memory_path() == custom_root / "memories" / "MEMORY.md"
+    assert resolve_user_memory_path() == Path.home() / ".gemini" / "memories" / "USER.md"
+
+
+def test_resolve_user_memory_env_override(tmp_path, monkeypatch):
+    custom_mem = tmp_path / "custom_memories"
+    custom_mem.mkdir()
+    monkeypatch.setenv("GEMINI_MEMORIES_DIR", str(custom_mem))
+
+    from hermes_engine.config import resolve_user_memory_path
+    assert resolve_user_memory_path() == custom_mem / "USER.md"
+

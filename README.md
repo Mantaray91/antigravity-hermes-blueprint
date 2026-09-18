@@ -3,7 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/MCP-FastMCP-orange.svg)](https://github.com/jlowin/fastmcp)
 [![SQLite FTS5](https://img.shields.io/badge/recall-SQLite%20FTS5%20(BM25)-green.svg)](https://www.sqlite.org/fts5.html)
-[![Tests](https://img.shields.io/badge/tests-122%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-126%20passed-brightgreen.svg)](tests/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **A Production-Grade, Provenance-Guarded 3-Tier Memory Architecture & Autonomous Self-Evolution Engine for AI Coding Agents.**
@@ -92,7 +92,7 @@ cd antigravity-hermes-blueprint
 bash install.sh
 ```
 
-### Self-Verification (122 Unit Tests)
+### Self-Verification (126 Unit Tests)
 ```bash
 pytest tests/ -v
 ```
@@ -143,7 +143,7 @@ Configure your AI agent (Antigravity, Claude Code, Cursor, Windsurf) by adding `
 │   ├── hooks.json.example     # Portable hook configuration example using {AGENTS_ROOT}
 │   ├── USER.md.example        # Tier 2 User profile template (safe placeholder)
 │   └── MEMORY.md.example      # Tier 2 Workspace rules template (safe placeholder)
-├── tests/                     # 122/122 complete test suite
+├── tests/                     # 126/126 complete test suite
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_config.py

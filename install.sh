@@ -74,20 +74,21 @@ fi
 
 # 5. Generate hooks.json
 echo "[5/6] Generating lifecycle hooks configuration..."
+PYTHON_BIN="$(command -v python3 || echo 'python3')"
 HOOKS_FILE="${AGENTS_ROOT}/hooks.json"
 cat > "${HOOKS_FILE}" <<EOF
 {
   "hermes-memory-injector": {
     "PreInvocation": [
       {
-        "command": "python3 ${SCRIPT_DIR}/hermes_engine/hooks/pre_invocation.py"
+        "command": "${PYTHON_BIN} ${SCRIPT_DIR}/hermes_engine/hooks/pre_invocation.py"
       }
     ]
   },
   "hermes-session-stop": {
     "Stop": [
       {
-        "command": "python3 ${SCRIPT_DIR}/hermes_engine/hooks/stop_hook.py"
+        "command": "${PYTHON_BIN} ${SCRIPT_DIR}/hermes_engine/hooks/stop_hook.py"
       }
     ]
   }

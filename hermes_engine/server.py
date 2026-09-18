@@ -38,7 +38,11 @@ try:
         get_current_write_origin,
     )
     from hermes_engine.session_db import SessionDB
-    from hermes_engine.config import resolve_agents_root
+    from hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 except ImportError:
     from mcp.hermes_engine.memory import MemoryStore
     from mcp.hermes_engine.skills import (
@@ -47,13 +51,17 @@ except ImportError:
         get_current_write_origin,
     )
     from mcp.hermes_engine.session_db import SessionDB
-    from mcp.hermes_engine.config import resolve_agents_root
+    from mcp.hermes_engine.config import (
+        resolve_agents_root,
+        resolve_user_memory_path,
+        resolve_workspace_memory_path,
+    )
 
 mcp = FastMCP("hermes-engine")
 
-USER_PATH = Path(os.environ.get("GEMINI_MEMORIES_DIR", Path.home() / ".gemini" / "memories")) / "USER.md"
 AGENTS_ROOT = resolve_agents_root()
-MEMORY_PATH = AGENTS_ROOT / "memories" / "MEMORY.md"
+USER_PATH = resolve_user_memory_path()
+MEMORY_PATH = resolve_workspace_memory_path()
 SKILLS_DIR = AGENTS_ROOT / "skills"
 USAGE_PATH = SKILLS_DIR / ".usage.json"
 DB_PATH = AGENTS_ROOT / "state" / "state.db"
